@@ -16,11 +16,11 @@ impl self::node::Node<[f32; 2]> for TestNode {
 mod tests {
     #[test]
     fn cyclic_graph_test1() {
-        let mut graph = super::graph::Graph::<[f32; 2], super::TestNode>::new();
-        let n1 = graph.add_node(super::TestNode{});
-        let n2 = graph.add_node(super::TestNode{});
-        let n3 = graph.add_node(super::TestNode{});
-        let n4 = graph.add_node(super::TestNode{});
+        let mut graph = super::graph::Graph::<[f32; 2]>::new();
+        let n1 = graph.add_node(Box::new(super::TestNode{}));
+        let n2 = graph.add_node(Box::new(super::TestNode{}));
+        let n3 = graph.add_node(Box::new(super::TestNode{}));
+        let n4 = graph.add_node(Box::new(super::TestNode{}));
         graph.add_connection(n1,0,n2,0).unwrap();
         graph.add_connection(n2,0,n3,0).unwrap();
         graph.add_connection(n3,0,n4,0).unwrap();
@@ -29,11 +29,11 @@ mod tests {
 
     #[test]
     fn cyclic_graph_test2() {
-        let mut graph = super::graph::Graph::<[f32; 2], super::TestNode>::new();
-        let n1 = graph.add_node(super::TestNode{});
-        let n2 = graph.add_node(super::TestNode{});
-        let n3 = graph.add_node(super::TestNode{});
-        let n4 = graph.add_node(super::TestNode{});
+        let mut graph = super::graph::Graph::<[f32; 2]>::new();
+        let n1 = graph.add_node(Box::new(super::TestNode{}));
+        let n2 = graph.add_node(Box::new(super::TestNode{}));
+        let n3 = graph.add_node(Box::new(super::TestNode{}));
+        let n4 = graph.add_node(Box::new(super::TestNode{}));
         graph.add_connection(n1,0,n2,0).unwrap();
         graph.add_connection(n1,0,n3,0).unwrap();
         graph.add_connection(n1,0,n4,0).unwrap();
@@ -42,11 +42,11 @@ mod tests {
     
     #[test]
     fn cyclic_graph_test3() {
-        let mut graph = super::graph::Graph::<[f32; 2], super::TestNode>::new();
-        let n1 = graph.add_node(super::TestNode{});
-        let n2 = graph.add_node(super::TestNode{});
-        let n3 = graph.add_node(super::TestNode{});
-        let n4 = graph.add_node(super::TestNode{});
+        let mut graph = super::graph::Graph::<[f32; 2]>::new();
+        let n1 = graph.add_node(Box::new(super::TestNode{}));
+        let n2 = graph.add_node(Box::new(super::TestNode{}));
+        let n3 = graph.add_node(Box::new(super::TestNode{}));
+        let n4 = graph.add_node(Box::new(super::TestNode{}));
         graph.add_connection(n1,0,n2,0).unwrap();
         graph.add_connection(n2,0,n3,0).unwrap();
         graph.add_connection(n3,0,n4,0).unwrap();
@@ -60,11 +60,11 @@ mod tests {
 
     #[test]
     fn cyclic_graph_test4() {
-        let mut graph = super::graph::Graph::<[f32; 2], super::TestNode>::new();
-        let n1 = graph.add_node(super::TestNode{});
-        let n2 = graph.add_node(super::TestNode{});
-        let n3 = graph.add_node(super::TestNode{});
-        let n4 = graph.add_node(super::TestNode{});
+        let mut graph = super::graph::Graph::<[f32; 2]>::new();
+        let n1 = graph.add_node(Box::new(super::TestNode{}));
+        let n2 = graph.add_node(Box::new(super::TestNode{}));
+        let n3 = graph.add_node(Box::new(super::TestNode{}));
+        let n4 = graph.add_node(Box::new(super::TestNode{}));
         graph.add_connection(n1,0,n3,0).unwrap();
         graph.add_connection(n3,0,n2,0).unwrap();
         graph.add_connection(n2,0,n4,0).unwrap();

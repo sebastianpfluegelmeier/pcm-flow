@@ -5,15 +5,15 @@ use self::sample::Frame;
 use std::marker::PhantomData;
 use std::collections::HashMap;
 
-pub struct Graph<F: Frame, N: Node<F>> {
-    nodes: Vec<Box<N>>,
+pub struct Graph<F: Frame> {
+    nodes: Vec<Box<Node<F>>>,
     // input_node, input_port, output_node, output_port
     connections: Vec<(usize, usize, usize, usize)>,
     _marker: PhantomData<F>,
 }
 
-impl<F, N> Graph<F, N> 
-    where F: Frame, N: Node<F> {
+impl<F> Graph<F> 
+    where F: Frame {
 
     pub fn new() -> Self {
         Graph {
@@ -24,9 +24,9 @@ impl<F, N> Graph<F, N>
     }
 
     /// Add a new node to the Graph. Its ID gets returned.
-    pub fn add_node(&mut self, node: N) -> usize {
+    pub fn add_node(&mut self, node: Box<Node<F>>) -> usize {
         let index = self.nodes.len();
-        self.nodes.push(Box::new(node));
+        self.nodes.push(node);
         return index;
     }
 
