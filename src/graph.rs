@@ -76,4 +76,35 @@ impl<F> Graph<F>
         }
         return false;
     }
+
+    pub fn get_topological_sorting(&self) -> Vec<usize> {
+        let mut incoming_connections = vec![0; self.nodes.len()];
+        let mut sorted = Vec::new();
+        for c in &self.connections {
+            incoming_connections[c.2] += 1;
+        }
+        let mut outgoing_connections = vec![HashMap::new(); self.nodes.len()];
+        for &(_in, _, out, _) in &self.connections {
+            outgoing_connections[_in].insert(out, ());
+        }
+
+        let mut next_nodes = Vec::new();
+        
+        for (i, connections) in incoming_connections.iter().enumerate() {
+            if *connections == 0 {
+                next_nodes.push(i);
+            }
+        }
+        while (&next_nodes).len() > 0 {
+            let mut current_nodes = next_nodes;
+            next_nodes = Vec::new();
+            for node in &current_nodes {
+                for outgoing_connection in &outgoing_connections[*node] {
+                    next_nodes.push(*outgoing_connection.0); 
+                }
+            }
+            sorted.append(&mut current_nodes);
+        }
+        return sorted;
+    }
 }
