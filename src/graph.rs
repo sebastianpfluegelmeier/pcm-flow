@@ -15,6 +15,14 @@ pub struct Graph<F: Frame, N: Node<F>> {
 impl<F, N> Graph<F, N> 
     where F: Frame, N: Node<F> {
 
+    pub fn new() -> Self {
+        Graph {
+            nodes: Vec::new(),
+            connections: Vec::new(),
+            _marker: PhantomData
+        }
+    }
+
     /// Add a new node to the Graph. Its ID gets returned.
     pub fn add_node(&mut self, node: N) -> usize {
         let index = self.nodes.len();
@@ -22,13 +30,13 @@ impl<F, N> Graph<F, N>
         return index;
     }
 
-    pub fn connect_nodes(&mut self,
+    pub fn add_connection(&mut self,
                          input_node: usize, 
                          input_port: usize, 
                          output_node: usize, 
                          output_port: usize) -> Result<usize, String> {
         self.connections.push((input_node, input_port, output_node, output_port));
-        if self.check_for_cycle(input_node, &mut HashMap::new()) {
+        if self.has_cycle(input_node, &mut HashMap::new()) {
             return Err(format!("Found a Cycle when trying to commect node {} and node {}",
                        input_node, output_node));
         }
@@ -46,7 +54,7 @@ impl<F, N> Graph<F, N>
         }
     }
 
-    fn check_for_cycle(&self,
+    fn has_cycle(&self,
                        start: usize,
                        mut visited: &mut HashMap<usize, ()> ) -> bool {
         let mut neighbours = Vec::new(); 
@@ -58,12 +66,14 @@ impl<F, N> Graph<F, N>
         visited.insert(start, ());
         for n in &neighbours {
             if visited.contains_key(&n) {
-                return false;
+                return true;
             }
         }
         for n in neighbours {
-            self.check_for_cycle(n, &mut visited);
+            if self.has_cycle(n, &mut visited) {
+                return true;
+            }
         }
-        return true;
+        return false;
     }
 }
