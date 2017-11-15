@@ -8,8 +8,11 @@ use self::petgraph::graph::Graph as PetGraph;
 
 pub struct Graph<F: Frame> {
     nodes: Vec<Box<Node<F>>>,
+    pub input_buffers: Vec<Vec<F>>,
+    pub output_buffers: Vec<Vec<F>>,
     // input_node, input_port, output_node, output_port
     connections: Vec<(usize, usize, usize, usize)>,
+    outputs: HashMap<(usize, usize), (usize, usize)>,
     topological_sorting: Vec<usize>
 }
 
@@ -20,13 +23,18 @@ impl<F> Graph<F>
         Graph {
             nodes: Vec::new(),
             connections: Vec::new(),
-            topological_sorting: Vec::new()
+            outputs: HashMap::new(),
+            topological_sorting: Vec::new(),
+            input_buffers: Vec::new(),
+            output_buffers: Vec::new()
         }
     }
 
     /// Add a new node to the Graph. Its ID gets returned.
     pub fn add_node(&mut self, node: Box<Node<F>>) -> usize {
         let index = self.nodes.len();
+        self.input_buffers .push(vec![F::equilibrium(); node.inputs_amt() ]);
+        self.output_buffers.push(vec![F::equilibrium(); node.outputs_amt()]);
         self.nodes.push(node);
         return index;
     }
@@ -41,6 +49,7 @@ impl<F> Graph<F>
             return Err(format!("Found a Cycle when trying to connect node {} and node {}",
                        input_node, output_node));
         }
+        self.outputs.insert((input_node, input_port), (output_node, output_port));
         self.connections.pop();
         let input_ports  = (*self.nodes[input_node]).inputs_amt();
         let output_ports = self.nodes[input_node].outputs_amt();
@@ -59,6 +68,23 @@ impl<F> Graph<F>
             return Err(format!("Port {} does not exist on Node {}", input_port, input_node));
         } else {
             return Err(format!("Port {} does not exist on Node {}", output_port, output_port));
+        }
+    }
+
+    pub fn process_graph(&mut self) {
+        for i in 0..self.nodes.len() {
+            self.input_buffers[i]  = vec![F::equilibrium(); self.nodes[i].inputs_amt()];
+            self.output_buffers[i] = vec![F::equilibrium(); self.nodes[i].outputs_amt()];
+        }
+        for node in &self.topological_sorting {
+            self.nodes[*node].process(&mut self.input_buffers[*node], 
+                                      &mut self.output_buffers[*node]);
+            for output in 0..self.nodes[*node].outputs_amt() {
+                if let Some(&(input_node, input_port)) = self.outputs.get(&(*node, output)){
+                    self.input_buffers[input_node][input_port] = 
+                        self.output_buffers[*node][output];
+                }
+            }
         }
     }
 
