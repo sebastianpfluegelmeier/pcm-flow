@@ -1,15 +1,16 @@
 extern crate sample;
+extern crate petgraph;
 
 use node::Node;
 use self::sample::Frame;
-use std::marker::PhantomData;
 use std::collections::HashMap;
+use self::petgraph::graph::Graph as PetGraph;
 
 pub struct Graph<F: Frame> {
     nodes: Vec<Box<Node<F>>>,
     // input_node, input_port, output_node, output_port
     connections: Vec<(usize, usize, usize, usize)>,
-    _marker: PhantomData<F>,
+    topological_sorting: Vec<usize>
 }
 
 impl<F> Graph<F> 
@@ -19,7 +20,7 @@ impl<F> Graph<F>
         Graph {
             nodes: Vec::new(),
             connections: Vec::new(),
-            _marker: PhantomData
+            topological_sorting: Vec::new()
         }
     }
 
@@ -36,13 +37,20 @@ impl<F> Graph<F>
                          output_node: usize, 
                          output_port: usize) -> Result<usize, String> {
         self.connections.push((input_node, input_port, output_node, output_port));
-        if self.has_cycle(input_node, &mut HashMap::new()) {
-            return Err(format!("Found a Cycle when trying to commect node {} and node {}",
+        if let None = self.get_topological_sorting() {
+            return Err(format!("Found a Cycle when trying to connect node {} and node {}",
                        input_node, output_node));
         }
         self.connections.pop();
         let input_ports  = (*self.nodes[input_node]).inputs_amt();
         let output_ports = self.nodes[input_node].outputs_amt();
+        if let Some(topo_sorting) = self.get_topological_sorting() {
+            self.topological_sorting = topo_sorting;
+        } else {
+            self.connections.pop();
+            return Err(format!("Cycle found after Connecting Node {} and Node {}", 
+                       input_node, output_node));
+        }
         if input_port < input_ports && output_port < output_ports {
             let connections_len = self.connections.len();
             self.connections.push((input_node, input_port, output_node, output_port));
@@ -54,57 +62,29 @@ impl<F> Graph<F>
         }
     }
 
-    fn has_cycle(&self,
-                       start: usize,
-                       mut visited: &mut HashMap<usize, ()> ) -> bool {
-        let mut neighbours = Vec::new(); 
-        for c in &self.connections {
-            if c.0 == start {
-                neighbours.push(c.2)
-            }
-        }
-        visited.insert(start, ());
-        for n in &neighbours {
-            if visited.contains_key(&n) {
-                return true;
-            }
-        }
-        for n in neighbours {
-            if self.has_cycle(n, &mut visited) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    pub fn get_topological_sorting(&self) -> Vec<usize> {
-        let mut incoming_connections = vec![0; self.nodes.len()];
-        let mut sorted = Vec::new();
-        for c in &self.connections {
-            incoming_connections[c.2] += 1;
-        }
-        let mut outgoing_connections = vec![HashMap::new(); self.nodes.len()];
-        for &(_in, _, out, _) in &self.connections {
-            outgoing_connections[_in].insert(out, ());
+    pub fn get_topological_sorting(&self) -> Option<Vec<usize>> {
+        let mut petgraph: PetGraph<(), (), petgraph::Directed, u32> = PetGraph::new();
+        let mut pet_is_to_graph_is = HashMap::new();
+        let mut graph_is_to_pet_is = HashMap::new();
+        for i in 0..self.nodes.len() {
+            let petgraph_index = petgraph.add_node(());
+            graph_is_to_pet_is.insert(i, petgraph_index);
+            pet_is_to_graph_is.insert(petgraph_index, i);
         }
 
-        let mut next_nodes = Vec::new();
-        
-        for (i, connections) in incoming_connections.iter().enumerate() {
-            if *connections == 0 {
-                next_nodes.push(i);
-            }
+        for &(s, _, e, _) in &self.connections {
+            petgraph.add_edge(graph_is_to_pet_is[&s], graph_is_to_pet_is[&e], ());
         }
-        while (&next_nodes).len() > 0 {
-            let mut current_nodes = next_nodes;
-            next_nodes = Vec::new();
-            for node in &current_nodes {
-                for outgoing_connection in &outgoing_connections[*node] {
-                    next_nodes.push(*outgoing_connection.0); 
+
+        match petgraph::algo::toposort(&petgraph, None) {
+            Ok(sorted) => {
+                let mut result = Vec::new();
+                for s in sorted {
+                    result.push(pet_is_to_graph_is[&s]);
                 }
-            }
-            sorted.append(&mut current_nodes);
+                return Some(result);
+            },
+            Err(_) => {return None}
         }
-        return sorted;
     }
 }
