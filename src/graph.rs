@@ -1,7 +1,7 @@
 extern crate petgraph;
 extern crate sample;
 
-use node::Node;
+use processor::Processor;
 use self::sample::Frame;
 use std::collections::HashMap;
 use self::petgraph::graph::Graph as PetGraph;
@@ -10,16 +10,16 @@ type Connection = (PortId, PortId);
 type PortId = (usize, usize);
 
 pub struct Graph<F: Frame> {
-    nodes: Vec<Box<Node<F>>>,
+    processors: Vec<Box<Processor<F>>>,
     graph_input_buffers: Vec<F>,
     graph_output_buffers: Vec<F>,
     input_buffers: Vec<Vec<F>>,
     output_buffers: Vec<Vec<F>>,
-    // input_node, input_port, output_node, output_port
+    // input_processor, input_port, output_processor, output_port
     connections: Vec<Connection>,
-    // input_port<(node, port)>
+    // input_port<(processor, port)>
     input_connections: Vec<PortId>,
-    // output_port<(node, port)>
+    // output_port<(processor, port)>
     output_connections: Vec<PortId>,
     outputs: HashMap<PortId, PortId>,
     topological_sorting: Vec<usize>,
@@ -31,7 +31,7 @@ where
 {
     pub fn new() -> Self {
         Graph {
-            nodes: Vec::new(),
+            processors: Vec::new(),
             graph_input_buffers: Vec::new(),
             graph_output_buffers: Vec::new(),
             connections: Vec::new(),
@@ -44,14 +44,14 @@ where
         }
     }
 
-    /// Add a new node to the Graph. Its ID gets returned.
-    pub fn add_node(&mut self, node: Box<Node<F>>) -> usize {
-        let index = self.nodes.len();
+    /// Add a new processor to the Graph. Its ID gets returned.
+    pub fn add_processor(&mut self, processor: Box<Processor<F>>) -> usize {
+        let index = self.processors.len();
         self.input_buffers
-            .push(vec![F::equilibrium(); node.inputs_amt()]);
+            .push(vec![F::equilibrium(); processor.inputs_amt()]);
         self.output_buffers
-            .push(vec![F::equilibrium(); node.outputs_amt()]);
-        self.nodes.push(node);
+            .push(vec![F::equilibrium(); processor.outputs_amt()]);
+        self.processors.push(processor);
         return index;
     }
 
@@ -75,43 +75,43 @@ where
 
     pub fn add_connection(
         &mut self,
-        input_node: usize,
+        input_processor: usize,
         input_port: usize,
-        output_node: usize,
+        output_processor: usize,
         output_port: usize,
     ) -> Result<usize, String> {
-        let input_ports_amt = (*self.nodes[input_node]).inputs_amt();
-        let output_ports_amt = self.nodes[input_node].outputs_amt();
+        let input_ports_amt = (*self.processors[input_processor]).inputs_amt();
+        let output_ports_amt = self.processors[input_processor].outputs_amt();
 
         self.connections
-            .push(((input_node, input_port), (output_node, output_port)));
+            .push(((input_processor, input_port), (output_processor, output_port)));
         if let Some(topo_sorting) = self.get_topological_sorting() {
             self.topological_sorting = topo_sorting;
         } else {
             self.connections.pop();
             return Err(format!(
-                "Cycle found after Connecting Node {} and Node {}",
-                input_node,
-                output_node
+                "Cycle found after Connecting Processor {} and Processor {}",
+                input_processor,
+                output_processor
             ));
         }
 
         if input_port < input_ports_amt && output_port < output_ports_amt {
             let connections_len = self.connections.len();
             self.outputs
-                .insert((input_node, input_port), (output_node, output_port));
+                .insert((input_processor, input_port), (output_processor, output_port));
             return Ok(connections_len);
         } else if input_port < input_ports_amt {
             self.connections.pop();
             return Err(format!(
-                "Port {} does not exist on Node {}",
+                "Port {} does not exist on Processor {}",
                 input_port,
-                input_node
+                input_processor
             ));
         } else {
             self.connections.pop();
             return Err(format!(
-                "Port {} does not exist on Node {}",
+                "Port {} does not exist on Processor {}",
                 output_port,
                 output_port
             ));
@@ -120,33 +120,33 @@ where
 
     fn process_graph(&mut self) {
         // clear input and output buffers
-        for i in 0..self.nodes.len() {
-            self.input_buffers[i] = vec![F::equilibrium(); self.nodes[i].inputs_amt()];
-            self.output_buffers[i] = vec![F::equilibrium(); self.nodes[i].outputs_amt()];
+        for i in 0..self.processors.len() {
+            self.input_buffers[i] = vec![F::equilibrium(); self.processors[i].inputs_amt()];
+            self.output_buffers[i] = vec![F::equilibrium(); self.processors[i].outputs_amt()];
         }
 
-        // pass graph input buffers to connected Nodes
-        for (input, &(node, port)) in self.input_connections.iter().enumerate() {
-            self.input_buffers[node][port] = self.graph_input_buffers[input];
+        // pass graph input buffers to connected Processors
+        for (input, &(processor, port)) in self.input_connections.iter().enumerate() {
+            self.input_buffers[processor][port] = self.graph_input_buffers[input];
         }
 
-        // go through the sorted nodes and pass the Frames on
-        for node in &self.topological_sorting {
-            self.nodes[*node].process(
-                &mut self.input_buffers[*node],
-                &mut self.output_buffers[*node],
+        // go through the sorted processors and pass the Frames on
+        for processor in &self.topological_sorting {
+            self.processors[*processor].process(
+                &mut self.input_buffers[*processor],
+                &mut self.output_buffers[*processor],
             );
-            for output in 0..self.nodes[*node].outputs_amt() {
-                if let Some(&(input_node, input_port)) = self.outputs.get(&(*node, output)) {
-                    self.input_buffers[input_node][input_port] 
-                        = self.output_buffers[*node][output];
+            for output in 0..self.processors[*processor].outputs_amt() {
+                if let Some(&(input_processor, input_port)) = self.outputs.get(&(*processor, output)) {
+                    self.input_buffers[input_processor][input_port] 
+                        = self.output_buffers[*processor][output];
                 }
             }
         }
 
         // pass data to graph output buffers
-        for (output, &(node, port)) in self.output_connections.iter().enumerate() {
-            self.graph_output_buffers[output] = self.output_buffers[node][port];
+        for (output, &(processor, port)) in self.output_connections.iter().enumerate() {
+            self.graph_output_buffers[output] = self.output_buffers[processor][port];
         }
     }
 
@@ -154,7 +154,7 @@ where
         let mut petgraph: PetGraph<(), (), petgraph::Directed, u32> = PetGraph::new();
         let mut pet_ix_to_graph_ix = HashMap::new();
         let mut graph_ix_to_pet_ix = HashMap::new();
-        for i in 0..self.nodes.len() {
+        for i in 0..self.processors.len() {
             let petgraph_index = petgraph.add_node(());
             graph_ix_to_pet_ix.insert(i, petgraph_index);
             pet_ix_to_graph_ix.insert(petgraph_index, i);
@@ -177,7 +177,7 @@ where
     }
 }
 
-impl<F> Node<F> for Graph<F>
+impl<F> Processor<F> for Graph<F>
 where
     F: Frame,
 {

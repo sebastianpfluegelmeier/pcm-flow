@@ -1,3 +1,3 @@
-pub mod node;
+pub mod processor;
 pub mod graph;
 pub mod tests;
