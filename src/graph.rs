@@ -8,12 +8,18 @@ use self::petgraph::graph::Graph as PetGraph;
 
 pub struct Graph<F: Frame> {
     nodes: Vec<Box<Node<F>>>,
-    pub input_buffers: Vec<Vec<F>>,
-    pub output_buffers: Vec<Vec<F>>,
+    graph_input_buffers: Vec<F>,
+    graph_output_buffers: Vec<F>,
+    input_buffers: Vec<Vec<F>>,
+    output_buffers: Vec<Vec<F>>,
     // input_node, input_port, output_node, output_port
     connections: Vec<(usize, usize, usize, usize)>,
+    // input_port<(node, port)>
+    input_connections: Vec<(usize, usize)>,
+    // output_port<(node, port)>
+    output_connections: Vec<(usize, usize)>,
     outputs: HashMap<(usize, usize), (usize, usize)>,
-    topological_sorting: Vec<usize>
+    topological_sorting: Vec<usize>,
 }
 
 impl<F> Graph<F> 
@@ -22,7 +28,11 @@ impl<F> Graph<F>
     pub fn new() -> Self {
         Graph {
             nodes: Vec::new(),
+            graph_input_buffers: Vec::new(),
+            graph_output_buffers: Vec::new(),
             connections: Vec::new(),
+            input_connections: Vec::new(),
+            output_connections: Vec::new(),
             outputs: HashMap::new(),
             topological_sorting: Vec::new(),
             input_buffers: Vec::new(),
@@ -37,6 +47,22 @@ impl<F> Graph<F>
         self.output_buffers.push(vec![F::equilibrium(); node.outputs_amt()]);
         self.nodes.push(node);
         return index;
+    }
+
+    pub fn connect_input(&mut self, input: usize, node: usize, port: usize) {
+        self.input_connections[input] = (node, port);
+    }
+
+    pub fn connect_output(&mut self, output: usize, node: usize, port: usize) {
+        self.output_connections[output] = (node, port);
+    }
+
+    pub fn set_input_amt(&mut self, inputs: usize) {
+        self.graph_input_buffers = vec![F::equilibrium(); inputs];
+    }
+
+    pub fn set_output_amt(&mut self, outputs: usize) {
+        self.graph_output_buffers = vec![F::equilibrium(); outputs];
     }
 
     pub fn add_connection(&mut self,
@@ -72,10 +98,17 @@ impl<F> Graph<F>
     }
 
     pub fn process_graph(&mut self) {
+        // clear input and output buffers
         for i in 0..self.nodes.len() {
             self.input_buffers[i]  = vec![F::equilibrium(); self.nodes[i].inputs_amt()];
             self.output_buffers[i] = vec![F::equilibrium(); self.nodes[i].outputs_amt()];
         }
+        // pass graph input buffers to connected Nodes
+        for (input, &(node, port)) in self.input_connections.iter().enumerate() {
+            self.input_buffers[node][port] = self.graph_input_buffers[input];
+        }
+
+        // go through the sorted nodes and pass the Frames on
         for node in &self.topological_sorting {
             self.nodes[*node].process(&mut self.input_buffers[*node], 
                                       &mut self.output_buffers[*node]);
@@ -85,6 +118,11 @@ impl<F> Graph<F>
                         self.output_buffers[*node][output];
                 }
             }
+        }
+
+        // pass data to graph output buffers
+        for (output, &(node, port)) in self.output_connections.iter().enumerate() {
+            self.graph_output_buffers[output] = self.input_buffers[node][port];
         }
     }
 
@@ -112,5 +150,24 @@ impl<F> Graph<F>
             },
             Err(_) => {return None}
         }
+    }
+}
+
+impl<F> Node<F> for Graph<F> where F: Frame {
+
+    fn process(&mut self, inputs: &mut Vec<F>, outputs: &mut Vec<F>) {
+        self.graph_input_buffers = inputs.clone();
+        self.process_graph();
+        for i in 0..outputs.len() {
+            outputs[i] = self.graph_output_buffers[i];
+        }
+    }
+
+    fn inputs_amt(&self) -> usize {
+        0
+    }
+
+    fn outputs_amt(&self) -> usize {
+        0
     }
 }
