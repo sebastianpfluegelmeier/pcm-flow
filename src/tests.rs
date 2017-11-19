@@ -152,4 +152,31 @@ mod tests {
         assert_eq!(input_buffer[0][0], output_buffer[0][0]);
         assert_eq!(input_buffer[0][1], output_buffer[0][1]);
     }
+
+    #[test]
+    fn too_much_connections_test() {
+        let mut graph = Graph::<[f32; 2]>::new();
+        let n1 = graph.add_processor(Box::new(super::TestProcessor {}));
+        let n2 = graph.add_processor(Box::new(super::TestProcessor {}));
+        match graph.add_connection(&mut (n1, 1), &mut (n2, 0)) {
+            Ok(_) => {
+                panic!();
+            }
+            _ => {}
+        }
+        match graph.add_connection(&mut (n1, 0), &mut (n2, 1)) {
+            Ok(_) => {
+                panic!();
+            }
+            _ => {}
+        }
+        match graph.add_connection(&mut (n1, 0), &mut (n1, 0)) {
+            Ok(_) => {
+                panic!();
+            }
+            _ => {}
+        }
+
+
+    }
 }

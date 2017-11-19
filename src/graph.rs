@@ -114,7 +114,7 @@ where
                     // dest processor exists
                     Some(dest_processor) => {
                         // check if dest port exists
-                        if dest_processor.inputs_amt() < dest_id.1 {
+                        if dest_processor.inputs_amt() <= dest_id.1 {
                             return Err("Destination Port does not Exist".to_string());
                         }
                     }
