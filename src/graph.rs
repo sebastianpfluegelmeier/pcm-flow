@@ -2,7 +2,7 @@ extern crate petgraph;
 extern crate sample;
 
 use processor::Processor;
-use self::sample::Frame;
+use self::sample::{Frame, Sample};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use self::petgraph::graph::Graph as PetGraph;
@@ -151,13 +151,6 @@ where
             self.output_buffers[i] = vec![F::equilibrium(); self.processors[i].outputs_amt()];
         }
 
-        /*
-        // pass graph input buffers to connected Processors
-        for (input, &(processor, port)) in self.input_connections.iter().enumerate() {
-            self.input_buffers[processor][port] = self.graph_input_buffers[input];
-        }
-        */
-
         // pass graph input buffers to connected Processors
         for (src, dest) in &self.input_connections {
             for &(dest_proc, dest_port) in dest {
@@ -174,8 +167,16 @@ where
             for output in 0..self.processors[*processor].outputs_amt() {
                 if let Some(connected_ports) = self.connections.get(&(*processor, output)) {
                     for &(input_processor, input_port) in connected_ports {
-                        self.input_buffers[input_processor][input_port] =
-                            self.output_buffers[*processor][output];
+                        let mut new_input;
+                        {
+                            new_input = self.input_buffers[input_processor][input_port]
+                                .zip_map(self.output_buffers[*processor][output],
+                                         |x, y| {
+                                             x.add_amp(y.to_sample())
+                                         })
+                                          
+                        }
+                        self.input_buffers[input_processor][input_port] = new_input;
                     }
                 }
             }
@@ -184,7 +185,16 @@ where
         // pass data to graph output buffers
         for (dest, src) in &self.output_connections {
             for &(src_proc, src_port) in src {
-                self.graph_output_buffers[*dest] = self.output_buffers[src_proc][src_port];
+                let mut new_output: F;
+                {
+                    new_output = self.output_buffers[src_proc][src_port]
+                        .zip_map(self.graph_output_buffers[*dest],
+                                 |x, y| {
+                                     x.add_amp(y.to_sample())
+                                 })
+                                  
+                }
+                self.graph_output_buffers[*dest] = new_output;
             }
         }
     }
