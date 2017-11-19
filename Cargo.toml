@@ -2,6 +2,8 @@
 name = "pcm-flow"
 version = "0.1.0"
 authors = ["sebastian"]
+license = "LGPL v3"
+description = "Compose many small audio Processors to a big audio Processor"
 
 [dependencies]
 sample = "*"
