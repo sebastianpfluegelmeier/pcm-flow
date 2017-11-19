@@ -10,7 +10,7 @@ use self::petgraph::graph::Graph as PetGraph;
 type PortId = (usize, usize);
 
 /// The main container struct for Processors.
-/// Processors can be added and connected in arbitrary 
+/// Processors can be added and connected in arbitrary
 /// ways as long there are no cyclic connections.
 /// All Processors must be from the same Frame type.
 /// A graph has an arbitrary number of inputs and outputs
@@ -33,7 +33,6 @@ pub struct Graph<F: Frame> {
     input_connections: HashMap<usize, HashSet<PortId>>,
     // a list of connections from nodes to the outputs
     output_connections: HashMap<usize, HashSet<PortId>>,
-
     // stores all processor indexes sorted topologically
     topological_sorting: Vec<usize>,
 }
@@ -78,7 +77,10 @@ where
 
     /// connect an output to a processor
     pub fn connect_output(&mut self, output: usize, port: PortId) {
-        self.output_connections.get_mut(&output).unwrap().insert(port);
+        self.output_connections
+            .get_mut(&output)
+            .unwrap()
+            .insert(port);
     }
 
     /// set the amount of inputs
@@ -102,14 +104,10 @@ where
     /// add aconnection between two ports
     /// either returns an Ok(connection Id) or in case of a cycle or an invalid
     /// port, a Err(Description)
-    pub fn add_connection(
-        &mut self,
-        &source_id: &PortId,
-        &dest_id: &PortId,
-    ) -> Result<(), String> {
+    pub fn add_connection(&mut self, &source_id: &PortId, &dest_id: &PortId) -> Result<(), String> {
         // check if src port exists
         match self.connections.get_mut(&source_id) {
-            // port exists, 
+            // port exists,
             Some(dest_connections) => {
                 // check if dest processor exists
                 match self.processors.get(dest_id.0) {
@@ -118,8 +116,8 @@ where
                         // check if dest port exists
                         if dest_processor.inputs_amt() < dest_id.1 {
                             return Err("Destination Port does not Exist".to_string());
-                        } 
-                    },
+                        }
+                    }
                     // dest processor does not exist
                     _ => {
                         return Err("Destination Processor does not exist".to_string());
@@ -127,7 +125,7 @@ where
                 }
                 // connection is added
                 dest_connections.insert(dest_id);
-            },
+            }
             // src port does not exist
             None => {
                 return Err("Source Processor or Processor Port does not exist".to_string());
@@ -176,8 +174,8 @@ where
             for output in 0..self.processors[*processor].outputs_amt() {
                 if let Some(connected_ports) = self.connections.get(&(*processor, output)) {
                     for &(input_processor, input_port) in connected_ports {
-                        self.input_buffers[input_processor][input_port] 
-                            = self.output_buffers[*processor][output];
+                        self.input_buffers[input_processor][input_port] =
+                            self.output_buffers[*processor][output];
                     }
                 }
             }
@@ -204,8 +202,11 @@ where
 
         for (&(src_processor, _), in_port_ids) in &self.connections {
             for &(dest_processor, _) in in_port_ids {
-                petgraph.add_edge(graph_ix_to_pet_ix[&src_processor], 
-                                  graph_ix_to_pet_ix[&dest_processor], ());
+                petgraph.add_edge(
+                    graph_ix_to_pet_ix[&src_processor],
+                    graph_ix_to_pet_ix[&dest_processor],
+                    (),
+                );
             }
         }
 
@@ -228,7 +229,11 @@ where
         for (&(src_proc, src_port), dest_procs) in &self.connections {
             string += &format!("\tsrc Processor: {}, src Port: {}\n", src_proc, src_port);
             for &(dest_proc, dest_port) in dest_procs {
-                string += &format!("\t\tdest Processor: {}, dest Port: {}\n", dest_proc, dest_port);
+                string += &format!(
+                    "\t\tdest Processor: {}, dest Port: {}\n",
+                    dest_proc,
+                    dest_port
+                );
             }
         }
         string
@@ -239,7 +244,7 @@ impl<F> Processor<F> for Graph<F>
 where
     F: Frame,
 {
-    /// takes an list of input Frames and output Frames, 
+    /// takes an list of input Frames and output Frames,
     /// processes the input and writes it to the outputs list.
     fn process(&mut self, inputs: &mut Vec<F>, outputs: &mut Vec<F>) {
         for i in 0..inputs.len() {
