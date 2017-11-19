@@ -6,5 +6,5 @@ license = "LGPL-3.0"
 description = "Compose many small audio Processors to a big audio Processor"
 
 [dependencies]
-sample = "*"
-petgraph = "*"
+sample = "0.8.1"
+petgraph = "0.4.10"
