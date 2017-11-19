@@ -114,7 +114,7 @@ where
                     // dest processor exists
                     Some(dest_processor) => {
                         // check if dest port exists
-                        if dest_processor.inputs_amt() < dest_id.1 {
+                        if dest_processor.inputs_amt() <= dest_id.1 {
                             return Err("Destination Port does not Exist".to_string());
                         }
                     }
@@ -167,15 +167,11 @@ where
             for output in 0..self.processors[*processor].outputs_amt() {
                 if let Some(connected_ports) = self.connections.get(&(*processor, output)) {
                     for &(input_processor, input_port) in connected_ports {
-                        let mut new_input;
-                        {
-                            new_input = self.input_buffers[input_processor][input_port]
+                        let new_input = self.input_buffers[input_processor][input_port]
                                 .zip_map(self.output_buffers[*processor][output],
                                          |x, y| {
                                              x.add_amp(y.to_sample())
-                                         })
-                                          
-                        }
+                                         });
                         self.input_buffers[input_processor][input_port] = new_input;
                     }
                 }
