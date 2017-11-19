@@ -31,10 +31,10 @@ mod tests {
         let n2 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n3 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n4 = graph.add_processor(Box::new(super::TestProcessor {}));
-        graph.add_connection(n1, 0, n2, 0).unwrap();
-        graph.add_connection(n2, 0, n3, 0).unwrap();
-        graph.add_connection(n3, 0, n4, 0).unwrap();
-        graph.add_connection(n1, 0, n4, 0).unwrap();
+        graph.add_connection(&mut (n1, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n3, 0), &mut (n4, 0)).unwrap();
+        graph.add_connection(&mut (n1, 0), &mut (n4, 0)).unwrap();
     }
 
     #[test]
@@ -44,10 +44,10 @@ mod tests {
         let n2 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n3 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n4 = graph.add_processor(Box::new(super::TestProcessor {}));
-        graph.add_connection(n1, 0, n2, 0).unwrap();
-        graph.add_connection(n1, 0, n3, 0).unwrap();
-        graph.add_connection(n1, 0, n4, 0).unwrap();
-        graph.add_connection(n2, 0, n4, 0).unwrap();
+        graph.add_connection(&mut (n1, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n1, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n1, 0), &mut (n4, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n4, 0)).unwrap();
     }
 
     #[test]
@@ -57,10 +57,10 @@ mod tests {
         let n2 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n3 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n4 = graph.add_processor(Box::new(super::TestProcessor {}));
-        graph.add_connection(n1, 0, n2, 0).unwrap();
-        graph.add_connection(n2, 0, n3, 0).unwrap();
-        graph.add_connection(n3, 0, n4, 0).unwrap();
-        match graph.add_connection(n4, 0, n1, 0) {
+        graph.add_connection(&mut (n1, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n3, 0), &mut (n4, 0)).unwrap();
+        match graph.add_connection(&mut (n4, 0), &mut (n1, 0)) {
             Ok(_) => {
                 panic!();
             }
@@ -75,12 +75,12 @@ mod tests {
         let n2 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n3 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n4 = graph.add_processor(Box::new(super::TestProcessor {}));
-        graph.add_connection(n1, 0, n2, 0).unwrap();
-        graph.add_connection(n2, 0, n3, 0).unwrap();
-        graph.add_connection(n3, 0, n4, 0).unwrap();
-        graph.add_connection(n2, 0, n4, 0).unwrap();
-        graph.add_connection(n1, 0, n3, 0).unwrap();
-        match graph.add_connection(n4, 0, n1, 0) {
+        graph.add_connection(&mut (n1, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n3, 0), &mut (n4, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n4, 0)).unwrap();
+        graph.add_connection(&mut (n1, 0), &mut (n3, 0)).unwrap();
+        match graph.add_connection(&mut (n4, 0), &mut (n1, 0)) {
             Ok(_) => {
                 panic!();
             }
@@ -95,10 +95,10 @@ mod tests {
         let n2 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n3 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n4 = graph.add_processor(Box::new(super::TestProcessor {}));
-        graph.add_connection(n1, 0, n2, 0).unwrap();
-        graph.add_connection(n2, 0, n3, 0).unwrap();
-        graph.add_connection(n3, 0, n4, 0).unwrap();
-        graph.add_connection(n2, 0, n4, 0).unwrap();
+        graph.add_connection(&mut (n1, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n3, 0), &mut (n4, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n4, 0)).unwrap();
         assert_eq!(graph.get_topological_sorting(), Some(vec![n1, n2, n3, n4]));
     }
 
@@ -111,21 +111,21 @@ mod tests {
         let n4 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n5 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n6 = graph.add_processor(Box::new(super::TestProcessor {}));
-        graph.add_connection(n6, 0, n5, 0).unwrap();
-        graph.add_connection(n6, 0, n4, 0).unwrap();
-        graph.add_connection(n6, 0, n3, 0).unwrap();
-        graph.add_connection(n6, 0, n2, 0).unwrap();
-        graph.add_connection(n6, 0, n1, 0).unwrap();
-        graph.add_connection(n5, 0, n4, 0).unwrap();
-        graph.add_connection(n5, 0, n3, 0).unwrap();
-        graph.add_connection(n5, 0, n2, 0).unwrap();
-        graph.add_connection(n5, 0, n1, 0).unwrap();
-        graph.add_connection(n4, 0, n3, 0).unwrap();
-        graph.add_connection(n4, 0, n2, 0).unwrap();
-        graph.add_connection(n4, 0, n1, 0).unwrap();
-        graph.add_connection(n3, 0, n2, 0).unwrap();
-        graph.add_connection(n3, 0, n1, 0).unwrap();
-        graph.add_connection(n2, 0, n1, 0).unwrap();
+        graph.add_connection(&mut (n6, 0), &mut (n5, 0)).unwrap();
+        graph.add_connection(&mut (n6, 0), &mut (n4, 0)).unwrap();
+        graph.add_connection(&mut (n6, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n6, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n6, 0), &mut (n1, 0)).unwrap();
+        graph.add_connection(&mut (n5, 0), &mut (n4, 0)).unwrap();
+        graph.add_connection(&mut (n5, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n5, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n5, 0), &mut (n1, 0)).unwrap();
+        graph.add_connection(&mut (n4, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n4, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n4, 0), &mut (n1, 0)).unwrap();
+        graph.add_connection(&mut (n3, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n3, 0), &mut (n1, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n1, 0)).unwrap();
         assert_eq!(
             graph.get_topological_sorting(),
             Some(vec![n6, n5, n4, n3, n2, n1])
@@ -139,9 +139,9 @@ mod tests {
         let n2 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n3 = graph.add_processor(Box::new(super::TestProcessor {}));
         let n4 = graph.add_processor(Box::new(super::TestProcessor {}));
-        graph.add_connection(n1, 0, n2, 0).unwrap();
-        graph.add_connection(n2, 0, n3, 0).unwrap();
-        graph.add_connection(n3, 0, n4, 0).unwrap();
+        graph.add_connection(&mut (n1, 0), &mut (n2, 0)).unwrap();
+        graph.add_connection(&mut (n2, 0), &mut (n3, 0)).unwrap();
+        graph.add_connection(&mut (n3, 0), &mut (n4, 0)).unwrap();
         graph.set_input_amt(1);
         graph.set_output_amt(1);
         graph.connect_input(0, (n1, 0));

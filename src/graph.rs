@@ -4,9 +4,9 @@ extern crate sample;
 use processor::Processor;
 use self::sample::Frame;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use self::petgraph::graph::Graph as PetGraph;
 
-type Connection = (PortId, PortId);
 type PortId = (usize, usize);
 
 /// The main container struct for Processors.
@@ -27,12 +27,8 @@ pub struct Graph<F: Frame> {
     input_buffers: Vec<Vec<F>>,
     // output buffers for all processors
     output_buffers: Vec<Vec<F>>,
-    // a list of all connections between the processors
-    // TODO: remove and use outputs instead
-    connections: Vec<Connection>,
     // a hash map describing all connections from port to port
-    // TODO: change to HashMap<PortId, HashSet<PortId>>
-    outputs: HashMap<PortId, PortId>,
+    connections: HashMap<PortId, HashSet<PortId>>,
     // a list of connections from the inputs to nodes
     // TODO: change to HashMap<usize, HashSet<PortId>>
     input_connections: Vec<PortId>,
@@ -54,10 +50,9 @@ where
             processors: Vec::new(),
             graph_input_buffers: Vec::new(),
             graph_output_buffers: Vec::new(),
-            connections: Vec::new(),
             input_connections: Vec::new(),
             output_connections: Vec::new(),
-            outputs: HashMap::new(),
+            connections: HashMap::new(),
             topological_sorting: Vec::new(),
             input_buffers: Vec::new(),
             output_buffers: Vec::new(),
@@ -71,6 +66,9 @@ where
             .push(vec![F::equilibrium(); processor.inputs_amt()]);
         self.output_buffers
             .push(vec![F::equilibrium(); processor.outputs_amt()]);
+        for i in 0..processor.outputs_amt() {
+            self.connections.insert((index, i), HashSet::new());
+        }
         self.processors.push(processor);
         return index;
     }
@@ -102,49 +100,45 @@ where
     /// port, a Err(Description)
     pub fn add_connection(
         &mut self,
-        // TODO: change to PortId
-        input_processor: usize,
-        input_port: usize,
-        // TODO: change to PortId
-        output_processor: usize,
-        output_port: usize,
-    ) -> Result<usize, String> {
-        let input_ports_amt = (*self.processors[input_processor]).inputs_amt();
-        let output_ports_amt = self.processors[input_processor].outputs_amt();
-
-        self.connections
-            .push(((input_processor, input_port), (output_processor, output_port)));
-        if let Some(topo_sorting) = self.get_topological_sorting() {
-            self.topological_sorting = topo_sorting;
-        } else {
-            self.connections.pop();
-            return Err(format!(
-                "Cycle found after Connecting Processor {} and Processor {}",
-                input_processor,
-                output_processor
-            ));
+        &source_id: &PortId,
+        &dest_id: &PortId,
+    ) -> Result<(), String> {
+        // check if src port exists
+        match self.connections.get_mut(&source_id) {
+            // port exists, 
+            Some(dest_connections) => {
+                // check if dest processor exists
+                match self.processors.get(dest_id.0) {
+                    // dest processor exists
+                    Some(dest_processor) => {
+                        // check if dest port exists
+                        if dest_processor.inputs_amt() < dest_id.1 {
+                            return Err("Destination Port does not Exist".to_string());
+                        } 
+                    },
+                    // dest processor does not exist
+                    _ => {
+                        return Err("Destination Processor does not exist".to_string());
+                    }
+                }
+                // connection is added
+                dest_connections.insert(dest_id);
+            },
+            // src port does not exist
+            None => {
+                return Err("Source Processor or Processor Port does not exist".to_string());
+            }
+        }
+        match self.get_topological_sorting() {
+            Some(sorted) => {
+                self.topological_sorting = sorted;
+            }
+            None => {
+                return Err("Cycle detected".to_string());
+            }
         }
 
-        if input_port < input_ports_amt && output_port < output_ports_amt {
-            let connections_len = self.connections.len();
-            self.outputs
-                .insert((input_processor, input_port), (output_processor, output_port));
-            return Ok(connections_len);
-        } else if input_port < input_ports_amt {
-            self.connections.pop();
-            return Err(format!(
-                "Port {} does not exist on Processor {}",
-                input_port,
-                input_processor
-            ));
-        } else {
-            self.connections.pop();
-            return Err(format!(
-                "Port {} does not exist on Processor {}",
-                output_port,
-                output_port
-            ));
-        }
+        Ok(())
     }
 
     /// Values get passed along in the graph.
@@ -167,9 +161,11 @@ where
                 &mut self.output_buffers[*processor],
             );
             for output in 0..self.processors[*processor].outputs_amt() {
-                if let Some(&(input_processor, input_port)) = self.outputs.get(&(*processor, output)) {
-                    self.input_buffers[input_processor][input_port] 
-                        = self.output_buffers[*processor][output];
+                if let Some(connected_ports) = self.connections.get(&(*processor, output)) {
+                    for &(input_processor, input_port) in connected_ports {
+                        self.input_buffers[input_processor][input_port] 
+                            = self.output_buffers[*processor][output];
+                    }
                 }
             }
         }
@@ -191,8 +187,11 @@ where
             pet_ix_to_graph_ix.insert(petgraph_index, i);
         }
 
-        for &((s, _), (e, _)) in &self.connections {
-            petgraph.add_edge(graph_ix_to_pet_ix[&s], graph_ix_to_pet_ix[&e], ());
+        for (&(src_processor, _), in_port_ids) in &self.connections {
+            for &(dest_processor, _) in in_port_ids {
+                petgraph.add_edge(graph_ix_to_pet_ix[&src_processor], 
+                                  graph_ix_to_pet_ix[&dest_processor], ());
+            }
         }
 
         match petgraph::algo::toposort(&petgraph, None) {
@@ -205,6 +204,19 @@ where
             }
             Err(_) => return None,
         }
+    }
+
+    pub fn get_description_string(&self) -> String {
+        let mut string = String::new();
+        string += &format!("Processors: {}\n", self.processors.len());
+        string += "Connections: \n";
+        for (&(src_proc, src_port), dest_procs) in &self.connections {
+            string += &format!("\tsrc Processor: {}, src Port: {}\n", src_proc, src_port);
+            for &(dest_proc, dest_port) in dest_procs {
+                string += &format!("\t\tdest Processor: {}, dest Port: {}\n", dest_proc, dest_port);
+            }
+        }
+        string
     }
 }
 
