@@ -30,11 +30,9 @@ pub struct Graph<F: Frame> {
     // a hash map describing all connections from port to port
     connections: HashMap<PortId, HashSet<PortId>>,
     // a list of connections from the inputs to nodes
-    // TODO: change to HashMap<usize, HashSet<PortId>>
-    input_connections: Vec<PortId>,
+    input_connections: HashMap<usize, HashSet<PortId>>,
     // a list of connections from nodes to the outputs
-    // TODO: change to HashMap<usize, HashSet<PortId>>
-    output_connections: Vec<PortId>,
+    output_connections: HashMap<usize, HashSet<PortId>>,
 
     // stores all processor indexes sorted topologically
     topological_sorting: Vec<usize>,
@@ -50,8 +48,8 @@ where
             processors: Vec::new(),
             graph_input_buffers: Vec::new(),
             graph_output_buffers: Vec::new(),
-            input_connections: Vec::new(),
-            output_connections: Vec::new(),
+            input_connections: HashMap::new(),
+            output_connections: HashMap::new(),
             connections: HashMap::new(),
             topological_sorting: Vec::new(),
             input_buffers: Vec::new(),
@@ -73,26 +71,32 @@ where
         return index;
     }
 
-    /// Connect an input to a processor.
+    /// Connect an input to a processor
     pub fn connect_input(&mut self, input: usize, port: PortId) {
-        self.input_connections[input] = port;
+        self.input_connections.get_mut(&input).unwrap().insert(port);
     }
 
-    /// connect an output to a processor.
+    /// connect an output to a processor
     pub fn connect_output(&mut self, output: usize, port: PortId) {
-        self.output_connections[output] = port;
+        self.output_connections.get_mut(&output).unwrap().insert(port);
     }
 
     /// set the amount of inputs
     pub fn set_input_amt(&mut self, inputs: usize) {
         self.graph_input_buffers = vec![F::equilibrium(); inputs];
-        self.input_connections = vec![(0, 0); inputs];
+        self.input_connections = HashMap::new();
+        for i in 0..inputs {
+            self.input_connections.insert(i, HashSet::new());
+        }
     }
 
     /// set the amount of outputs
     pub fn set_output_amt(&mut self, outputs: usize) {
         self.graph_output_buffers = vec![F::equilibrium(); outputs];
-        self.output_connections = vec![(0, 0); outputs];
+        self.output_connections = HashMap::new();
+        for i in 0..outputs {
+            self.output_connections.insert(i, HashSet::new());
+        }
     }
 
     /// add aconnection between two ports
@@ -149,9 +153,18 @@ where
             self.output_buffers[i] = vec![F::equilibrium(); self.processors[i].outputs_amt()];
         }
 
+        /*
         // pass graph input buffers to connected Processors
         for (input, &(processor, port)) in self.input_connections.iter().enumerate() {
             self.input_buffers[processor][port] = self.graph_input_buffers[input];
+        }
+        */
+
+        // pass graph input buffers to connected Processors
+        for (src, dest) in &self.input_connections {
+            for &(dest_proc, dest_port) in dest {
+                self.input_buffers[dest_proc][dest_port] = self.graph_input_buffers[*src];
+            }
         }
 
         // go through the sorted processors and pass the Frames on
@@ -171,8 +184,10 @@ where
         }
 
         // pass data to graph output buffers
-        for (output, &(processor, port)) in self.output_connections.iter().enumerate() {
-            self.graph_output_buffers[output] = self.output_buffers[processor][port];
+        for (dest, src) in &self.output_connections {
+            for &(src_proc, src_port) in src {
+                self.graph_output_buffers[*dest] = self.output_buffers[src_proc][src_port];
+            }
         }
     }
 
