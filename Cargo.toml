@@ -13,5 +13,5 @@ name = "pcm_flow"
 path = "./src/lib.rs"
 
 [dependencies]
-sample = "*"
-petgraph = "*"
+sample = "0.8.1"
+petgraph = "0.4.10"
