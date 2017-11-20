@@ -1,9 +1,16 @@
 [package]
 name = "pcm-flow"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["sebastian"]
 license = "LGPL-3.0"
+repository = "https://github.com/sebastianpfluegelmeier/pcm-flow"
 description = "Compose many small audio Processors to a big audio Processor"
+readme = "README.md"
+keywords = ["audio", "modular", "dsp", "synthesizer"]
+
+[lib]
+name = "pcm_flow"
+path = "./src/lib.rs"
 
 [dependencies]
 sample = "0.8.1"
