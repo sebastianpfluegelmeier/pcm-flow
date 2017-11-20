@@ -71,16 +71,35 @@ where
     }
 
     /// Connect an input to a processor
-    pub fn connect_input(&mut self, input: usize, port: PortId) {
-        self.input_connections.get_mut(&input).unwrap().insert(port);
+    pub fn connect_input(&mut self, input: usize, port: PortId) -> Result<(), String> {
+        if !self.inport_exists(port) {
+            return Err(format!("port {} does not exist on node {}", port.0, port.1));
+        }
+        match self.input_connections.get_mut(&input) {
+            Some(x) => {
+                x.insert(port);
+                Ok(())
+            }, 
+            None => {
+                Err(format!("input {} does not exist", input))
+            }
+        }
     }
 
     /// connect an output to a processor
-    pub fn connect_output(&mut self, output: usize, port: PortId) {
-        self.output_connections
-            .get_mut(&output)
-            .unwrap()
-            .insert(port);
+    pub fn connect_output(&mut self, output: usize, port: PortId) -> Result<(), String> {
+        if !self.outport_exists(port) {
+            return Err(format!("port {} does not exist on node {}", port.0, port.1));
+        }
+        match self.output_connections.get_mut(&output) {
+            Some(x) => {
+                x.insert(port);
+                Ok(())
+            }, 
+            None => {
+                Err(format!("input {} does not exist", output))
+            }
+        }
     }
 
     /// set the amount of inputs
@@ -243,6 +262,25 @@ where
             }
         }
         string
+    }
+
+    fn inport_exists(&self, port: PortId) -> bool {
+        if port.0 < self.processors.len() {
+            if port.1 < self.processors[port.0].inputs_amt() {
+                return true;
+            }
+        }
+        false
+
+    }
+
+    fn outport_exists(&self, port: PortId) -> bool {
+        if port.0 < self.processors.len() {
+            if port.1 < self.processors[port.0].outputs_amt() {
+                return true;
+            }
+        }
+        false
     }
 }
 

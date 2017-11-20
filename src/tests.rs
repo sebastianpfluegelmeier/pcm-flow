@@ -144,8 +144,8 @@ mod tests {
         graph.add_connection(&mut (n3, 0), &mut (n4, 0)).unwrap();
         graph.set_input_amt(1);
         graph.set_output_amt(1);
-        graph.connect_input(0, (n1, 0));
-        graph.connect_output(0, (n4, 0));
+        graph.connect_input(0, (n1, 0)).unwrap();
+        graph.connect_output(0, (n4, 0)).unwrap();
         let mut output_buffer = vec![[0.0, 0.0]];
         let mut input_buffer = vec![[4.1, 6.2]];
         Processor::process(&mut graph, &mut input_buffer, &mut output_buffer);
@@ -163,9 +163,9 @@ mod tests {
         graph.add_connection(&mut (n2, 0), &mut (n3, 0)).unwrap();
         graph.set_input_amt(2);
         graph.set_output_amt(1);
-        graph.connect_input(0, (n1, 0));
-        graph.connect_input(1, (n2, 0));
-        graph.connect_output(0, (n3, 0));
+        graph.connect_input(0, (n1, 0)).unwrap();
+        graph.connect_input(1, (n2, 0)).unwrap();
+        graph.connect_output(0, (n3, 0)).unwrap();
         let mut output_buffer = vec![[0.4, 0.7]];
         let mut input_buffer = vec![[0.1, 0.2], [0.3, 0.5]];
         Processor::process(&mut graph, &mut input_buffer, &mut output_buffer);
@@ -186,8 +186,8 @@ mod tests {
         graph.add_connection(&mut (n2, 0), &mut (n4, 0)).unwrap();
         graph.set_input_amt(1);
         graph.set_output_amt(1);
-        graph.connect_input(0, (n1, 0));
-        graph.connect_output(0, (n4, 0));
+        graph.connect_input(0, (n1, 0)).unwrap();
+        graph.connect_output(0, (n4, 0)).unwrap();
         let mut output_buffer = vec![[0.4, 0.7]];
         let mut input_buffer = vec![[0.4, 0.7]];
         Processor::process(&mut graph, &mut input_buffer, &mut output_buffer);
