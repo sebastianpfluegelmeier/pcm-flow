@@ -10,7 +10,7 @@ Add pcm-flow to your Cargo.toml
 pcm-flow = "0.1.0"
 ```
 
-```
+``` rust
 extern crate pcm_flow;
 
 use pcm_flow::graph::Graph;
