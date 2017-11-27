@@ -1,7 +1,6 @@
 extern crate sample;
 
 use super::graph::BufferSet;
-use super::graph::Buffer;
 
 pub trait Processor<F: sample::Frame> {
     /// reads input from the first Vector of Frames

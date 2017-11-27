@@ -46,7 +46,7 @@ where
     F: Frame,
 {
     /// Create a new empty Graph
-    pub fn new() -> Self {
+    pub fn new(buffersize: usize) -> Self {
         Graph {
             processors: Vec::new(),
             graph_input_buffers: vec![],
@@ -57,7 +57,7 @@ where
             topological_sorting: Vec::new(),
             input_buffers: Vec::new(),
             output_buffers: Vec::new(),
-            buffersize: 64
+            buffersize: buffersize
         }
     }
 
@@ -109,7 +109,7 @@ where
 
     /// set the amount of inputs
     pub fn set_input_amt(&mut self, inputs: usize) {
-        self.graph_input_buffers = empty_buffer(inputs, self.buffersize);
+        self.graph_input_buffers = empty_buffer(self.buffersize, inputs);
         self.input_connections = HashMap::new();
         for i in 0..inputs {
             self.input_connections.insert(i, HashSet::new());
@@ -118,7 +118,7 @@ where
 
     /// set the amount of outputs
     pub fn set_output_amt(&mut self, outputs: usize) {
-        self.graph_output_buffers = empty_buffer(outputs, self.buffersize);
+        self.graph_output_buffers = empty_buffer(self.buffersize, outputs);
         self.output_connections = HashMap::new();
         for i in 0..outputs {
             self.output_connections.insert(i, HashSet::new());
@@ -178,11 +178,14 @@ where
         }
 
         // pass graph input buffers to connected Processors
+        // iterate over all graph input connections
         for (src, dest) in &self.input_connections {
+            // iterate over all destination input ports
             for &(dest_proc, dest_port) in dest {
-                for sample in 0..self.graph_input_buffers[*src].len() {
-                    self.input_buffers[sample][dest_proc][dest_port] =
-                        self.graph_input_buffers[sample][*src];
+                // iterate over all samples
+                for sample in 0..self.buffersize {
+                    self.input_buffers[dest_proc][dest_port][sample] =
+                        self.graph_input_buffers[*src][sample];
                 }
             }
         }
@@ -193,10 +196,14 @@ where
                 &self.input_buffers[*processor],
                 &mut self.output_buffers[*processor],
             );
+            // iterate over output ports
             for output in 0..self.processors[*processor].outputs_amt() {
+                // match for connected inputs
                 if let Some(connected_ports) = self.connections.get(&(*processor, output)) {
+                    // iterate over connected inputs
                     for &(input_processor, input_port) in connected_ports {
-                        for sample in 0..self.input_buffers[input_processor][input_port].len() {
+                        // iterate over samples
+                        for sample in 0..self.buffersize {
                             self.input_buffers[input_processor][input_port][sample] =
                                 self.input_buffers[input_processor][input_port][sample]
                                     .zip_map(self.output_buffers[*processor][output][sample],
@@ -212,10 +219,10 @@ where
         // pass data to graph output buffers
         for (dest, src) in &self.output_connections {
             for &(src_proc, src_port) in src {
-                for sample in 0..self.graph_output_buffers[*dest].len() {
-                        self.graph_output_buffers[sample][*dest] =
-                            self.graph_output_buffers[sample][*dest]
-                                .zip_map(self.output_buffers[sample][src_proc][src_port],
+                for sample in 0..self.buffersize {
+                        self.graph_output_buffers[*dest][sample] =
+                            self.graph_output_buffers[*dest][sample]
+                                .zip_map(self.output_buffers[src_proc][src_port][sample],
                                          |x, y| {
                                              x.add_amp(y.to_sample())
                                          });
@@ -302,8 +309,8 @@ where
     /// processes the input and writes it to the outputs list.
     fn process(&mut self, inputs: &BufferSet<F>, outputs: &mut BufferSet<F>) {
         for i in 0..inputs.len() {
-            for j in 0..inputs[i].len() {
-                self.graph_input_buffers[i][j] = inputs[i][j];
+            for sample in 0..self.buffersize {
+                self.graph_input_buffers[i][sample] = inputs[i][sample];
             }
         }
         self.process_graph();
