@@ -3,27 +3,29 @@ extern crate sample;
 #[cfg(test)]
 mod tests {
 
-struct TestProcessor {}
+    use super::super::graph::Graph;
+    use super::super::graph::BufferSet;
+    use super::super::processor::Processor;
 
-impl super::super::processor::Processor<[f32; 2]> for TestProcessor {
-    fn process(&mut self, inputs: &mut Vec<[f32; 2]>, outputs: &mut Vec<[f32; 2]>) {
-        for i in 0..inputs.len() {
-            for j in 0..inputs[i].len() {
-                outputs[i][j] = inputs[i][j];
+    struct TestProcessor {}
+
+    impl super::super::processor::Processor<[f32; 2]> for TestProcessor {
+        fn process(&mut self, inputs: &BufferSet<[f32; 2]>, outputs: &mut BufferSet<[f32; 2]>) {
+            for i in 0..inputs.len() {
+                for j in 0..inputs[i].len() {
+                    outputs[i][j] = inputs[i][j];
+                }
             }
         }
+        fn inputs_amt(&self) -> usize {
+            1
+        }
+        fn outputs_amt(&self) -> usize {
+            1
+        }
     }
-    fn inputs_amt(&self) -> usize {
-        1
-    }
-    fn outputs_amt(&self) -> usize {
-        1
-    }
-}
 
 
-    use super::super::graph::Graph;
-    use super::super::processor::Processor;
 
     #[test]
     fn cyclic_graph_test_1() {
@@ -147,11 +149,11 @@ impl super::super::processor::Processor<[f32; 2]> for TestProcessor {
         graph.set_output_amt(1);
         graph.connect_input(0, (n1, 0)).unwrap();
         graph.connect_output(0, (n4, 0)).unwrap();
-        let mut output_buffer = vec![[0.0, 0.0]];
-        let mut input_buffer = vec![[4.1, 6.2]];
-        Processor::process(&mut graph, &mut input_buffer, &mut output_buffer);
-        assert_eq!(input_buffer[0][0], output_buffer[0][0]);
-        assert_eq!(input_buffer[0][1], output_buffer[0][1]);
+        let mut output_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.0, 0.0]]];
+        let mut input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[4.1, 6.2]]];
+        Processor::process(&mut graph, &input_buffer, &mut output_buffer);
+        assert_eq!(input_buffer[0][0][0], output_buffer[0][0][0]);
+        assert_eq!(input_buffer[0][1][0], output_buffer[0][1][0]);
     }
 
     #[test]
@@ -167,11 +169,11 @@ impl super::super::processor::Processor<[f32; 2]> for TestProcessor {
         graph.connect_input(0, (n1, 0)).unwrap();
         graph.connect_input(1, (n2, 0)).unwrap();
         graph.connect_output(0, (n3, 0)).unwrap();
-        let mut output_buffer = vec![[0.4, 0.7]];
-        let mut input_buffer = vec![[0.1, 0.2], [0.3, 0.5]];
-        Processor::process(&mut graph, &mut input_buffer, &mut output_buffer);
-        assert_eq!(input_buffer[0][0] + input_buffer[1][0], output_buffer[0][0]);
-        assert_eq!(input_buffer[0][1] + input_buffer[1][1], output_buffer[0][1]);
+        let mut output_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.4, 0.7]]];
+        let mut input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.1, 0.2]], vec![[0.3, 0.5]]];
+        Processor::process(&mut graph, &input_buffer, &mut output_buffer);
+        assert_eq!(input_buffer[0][0][0] + input_buffer[1][0][0], output_buffer[0][0][0]);
+        assert_eq!(input_buffer[0][1][0] + input_buffer[1][1][0], output_buffer[0][1][0]);
     }
 
     #[test]
@@ -189,11 +191,11 @@ impl super::super::processor::Processor<[f32; 2]> for TestProcessor {
         graph.set_output_amt(1);
         graph.connect_input(0, (n1, 0)).unwrap();
         graph.connect_output(0, (n4, 0)).unwrap();
-        let mut output_buffer = vec![[0.4, 0.7]];
-        let mut input_buffer = vec![[0.4, 0.7]];
-        Processor::process(&mut graph, &mut input_buffer, &mut output_buffer);
-        assert_eq!(input_buffer[0][0] * 2.0, output_buffer[0][0]);
-        assert_eq!(input_buffer[0][1] * 2.0, output_buffer[0][1]);
+        let mut output_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.4, 0.7]]];
+        let mut input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.4, 0.7]]];
+        Processor::process(&mut graph, &input_buffer, &mut output_buffer);
+        assert_eq!(input_buffer[0][0][0] * 2.0, output_buffer[0][0][0]);
+        assert_eq!(input_buffer[0][1][0] * 2.0, output_buffer[0][1][0]);
     }
 
     #[test]
