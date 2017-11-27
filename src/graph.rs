@@ -7,7 +7,9 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use self::petgraph::graph::Graph as PetGraph;
 
-type PortId = (usize, usize);
+pub type PortId = (usize, usize);
+pub type Buffer<F> = Vec<F>;
+pub type BufferSet<F> = Vec<Buffer<F>>;
 
 /// The main container struct for Processors.
 /// Processors can be added and connected in arbitrary
@@ -16,17 +18,17 @@ type PortId = (usize, usize);
 /// A graph has an arbitrary number of inputs and outputs
 /// which can be connected to processors.
 /// These inputs and outputs are called graph inputs and graph outputs.
-pub struct Graph<F: Frame> {
+pub struct Graph<F> {
     // contains all processors
     processors: Vec<Box<Processor<F>>>,
     // buffers that contains the graph inputs
-    graph_input_buffers: Vec<F>,
+    graph_input_buffers: BufferSet<F>,
     // buffers that contain the graph outputs
-    graph_output_buffers: Vec<F>,
-    // input buffers for all processors
-    input_buffers: Vec<Vec<F>>,
-    // output buffers for all processors
-    output_buffers: Vec<Vec<F>>,
+    graph_output_buffers: BufferSet<F>,
+    // input buffer sets for all processors
+    input_buffers: Vec<BufferSet<F>>,
+    // output buffer sets for all processors
+    output_buffers: Vec<BufferSet<F>>,
     // a hash map describing all connections from port to port
     connections: HashMap<PortId, HashSet<PortId>>,
     // a list of connections from the inputs to nodes
@@ -35,6 +37,8 @@ pub struct Graph<F: Frame> {
     output_connections: HashMap<usize, HashSet<PortId>>,
     // stores all processor indexes sorted topologically
     topological_sorting: Vec<usize>,
+    // amount of Frames processed for one process()
+    buffersize: usize,
 }
 
 impl<F> Graph<F>
@@ -45,14 +49,15 @@ where
     pub fn new() -> Self {
         Graph {
             processors: Vec::new(),
-            graph_input_buffers: Vec::new(),
-            graph_output_buffers: Vec::new(),
+            graph_input_buffers: vec![],
+            graph_output_buffers: vec![],
             input_connections: HashMap::new(),
             output_connections: HashMap::new(),
             connections: HashMap::new(),
             topological_sorting: Vec::new(),
             input_buffers: Vec::new(),
             output_buffers: Vec::new(),
+            buffersize: 64
         }
     }
 
@@ -60,9 +65,9 @@ where
     pub fn add_processor(&mut self, processor: Box<Processor<F>>) -> usize {
         let index = self.processors.len();
         self.input_buffers
-            .push(vec![F::equilibrium(); processor.inputs_amt()]);
+            .push(empty_buffer(processor.inputs_amt(), self.buffersize));
         self.output_buffers
-            .push(vec![F::equilibrium(); processor.outputs_amt()]);
+            .push(empty_buffer(processor.outputs_amt(), self.buffersize));
         for i in 0..processor.outputs_amt() {
             self.connections.insert((index, i), HashSet::new());
         }
@@ -104,7 +109,7 @@ where
 
     /// set the amount of inputs
     pub fn set_input_amt(&mut self, inputs: usize) {
-        self.graph_input_buffers = vec![F::equilibrium(); inputs];
+        self.graph_input_buffers = empty_buffer(inputs, self.buffersize);
         self.input_connections = HashMap::new();
         for i in 0..inputs {
             self.input_connections.insert(i, HashSet::new());
@@ -113,7 +118,7 @@ where
 
     /// set the amount of outputs
     pub fn set_output_amt(&mut self, outputs: usize) {
-        self.graph_output_buffers = vec![F::equilibrium(); outputs];
+        self.graph_output_buffers = empty_buffer(outputs, self.buffersize);
         self.output_connections = HashMap::new();
         for i in 0..outputs {
             self.output_connections.insert(i, HashSet::new());
@@ -166,32 +171,39 @@ where
     fn process_graph(&mut self) {
         // clear input and output buffers
         for i in 0..self.processors.len() {
-            self.input_buffers[i] = vec![F::equilibrium(); self.processors[i].inputs_amt()];
-            self.output_buffers[i] = vec![F::equilibrium(); self.processors[i].outputs_amt()];
+            self.input_buffers[i] = 
+                empty_buffer(self.processors[i].inputs_amt(), self.buffersize);
+            self.output_buffers[i] =
+                empty_buffer(self.processors[i].outputs_amt(), self.buffersize);
         }
 
         // pass graph input buffers to connected Processors
         for (src, dest) in &self.input_connections {
             for &(dest_proc, dest_port) in dest {
-                self.input_buffers[dest_proc][dest_port] = self.graph_input_buffers[*src];
+                for sample in 0..self.graph_input_buffers[*src].len() {
+                    self.input_buffers[sample][dest_proc][dest_port] =
+                        self.graph_input_buffers[sample][*src];
+                }
             }
         }
 
         // go through the sorted processors and pass the Frames on
         for processor in &self.topological_sorting {
             self.processors[*processor].process(
-                &mut self.input_buffers[*processor],
+                &self.input_buffers[*processor],
                 &mut self.output_buffers[*processor],
             );
             for output in 0..self.processors[*processor].outputs_amt() {
                 if let Some(connected_ports) = self.connections.get(&(*processor, output)) {
                     for &(input_processor, input_port) in connected_ports {
-                        let new_input = self.input_buffers[input_processor][input_port]
-                                .zip_map(self.output_buffers[*processor][output],
-                                         |x, y| {
-                                             x.add_amp(y.to_sample())
-                                         });
-                        self.input_buffers[input_processor][input_port] = new_input;
+                        for sample in 0..self.input_buffers[input_processor][input_port].len() {
+                            self.input_buffers[input_processor][input_port][sample] =
+                                self.input_buffers[input_processor][input_port][sample]
+                                    .zip_map(self.output_buffers[*processor][output][sample],
+                                             |x, y| {
+                                                 x.add_amp(y.to_sample())
+                                             });
+                        }
                     }
                 }
             }
@@ -200,16 +212,14 @@ where
         // pass data to graph output buffers
         for (dest, src) in &self.output_connections {
             for &(src_proc, src_port) in src {
-                let mut new_output: F;
-                {
-                    new_output = self.output_buffers[src_proc][src_port]
-                        .zip_map(self.graph_output_buffers[*dest],
-                                 |x, y| {
-                                     x.add_amp(y.to_sample())
-                                 })
-                                  
+                for sample in 0..self.graph_output_buffers[*dest].len() {
+                        self.graph_output_buffers[sample][*dest] =
+                            self.graph_output_buffers[sample][*dest]
+                                .zip_map(self.output_buffers[sample][src_proc][src_port],
+                                         |x, y| {
+                                             x.add_amp(y.to_sample())
+                                         });
                 }
-                self.graph_output_buffers[*dest] = new_output;
             }
         }
     }
@@ -290,13 +300,17 @@ where
 {
     /// takes an list of input Frames and output Frames,
     /// processes the input and writes it to the outputs list.
-    fn process(&mut self, inputs: &mut Vec<F>, outputs: &mut Vec<F>) {
+    fn process(&mut self, inputs: &BufferSet<F>, outputs: &mut BufferSet<F>) {
         for i in 0..inputs.len() {
-            self.graph_input_buffers[i] = inputs[i];
+            for j in 0..inputs[i].len() {
+                self.graph_input_buffers[i][j] = inputs[i][j];
+            }
         }
         self.process_graph();
         for i in 0..outputs.len() {
-            outputs[i] = self.graph_output_buffers[i];
+            for j in 0..outputs[i].len() {
+                outputs[i][j] = self.graph_output_buffers[i][j];
+            }
         }
     }
 
@@ -307,6 +321,10 @@ where
 
     /// returns the amount of outputs
     fn outputs_amt(&self) -> usize {
-        self.input_buffers.len()
+        self.output_buffers.len()
     }
+}
+
+fn empty_buffer<F>(inner_size: usize, outer_size: usize) -> BufferSet<F> where F: Frame {
+    vec![vec![F::equilibrium(); inner_size]; outer_size]
 }

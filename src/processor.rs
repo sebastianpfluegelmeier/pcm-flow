@@ -1,9 +1,12 @@
 extern crate sample;
 
+use super::graph::BufferSet;
+use super::graph::Buffer;
+
 pub trait Processor<F: sample::Frame> {
     /// reads input from the first Vector of Frames
     /// and writes it to the second Vector of Frames
-    fn process(&mut self, &mut Vec<F>, &mut Vec<F>);
+    fn process(&mut self, &BufferSet<F>, &mut BufferSet<F>);
     /// return the amount of inputs
     fn inputs_amt(&self) -> usize;
     /// return the amount of outputs
