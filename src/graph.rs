@@ -9,6 +9,7 @@ use self::petgraph::graph::Graph as PetGraph;
 
 pub type PortId = (usize, usize);
 pub type Buffer<F> = Vec<F>;
+pub type FrameSet<F> = Vec<F>;
 pub type BufferSet<F> = Vec<Buffer<F>>;
 
 /// The main container struct for Processors.
@@ -65,9 +66,9 @@ where
     pub fn add_processor(&mut self, processor: Box<Processor<F>>) -> usize {
         let index = self.processors.len();
         self.input_buffers
-            .push(empty_buffer(processor.inputs_amt(), self.buffersize));
+            .push(empty_buffer(self.buffersize, processor.inputs_amt()));
         self.output_buffers
-            .push(empty_buffer(processor.outputs_amt(), self.buffersize));
+            .push(empty_buffer(self.buffersize, processor.outputs_amt()));
         for i in 0..processor.outputs_amt() {
             self.connections.insert((index, i), HashSet::new());
         }
@@ -172,9 +173,9 @@ where
         // clear input and output buffers
         for i in 0..self.processors.len() {
             self.input_buffers[i] = 
-                empty_buffer(self.processors[i].inputs_amt(), self.buffersize);
+                empty_buffer(self.buffersize, self.processors[i].inputs_amt());
             self.output_buffers[i] =
-                empty_buffer(self.processors[i].outputs_amt(), self.buffersize);
+                empty_buffer(self.buffersize, self.processors[i].outputs_amt());
         }
 
         // pass graph input buffers to connected Processors
@@ -191,25 +192,27 @@ where
         }
 
         // go through the sorted processors and pass the Frames on
-        for processor in &self.topological_sorting {
-            self.processors[*processor].process(
-                &self.input_buffers[*processor],
-                &mut self.output_buffers[*processor],
+        for src_processor in &self.topological_sorting {
+            self.processors[*src_processor].process(
+                &self.input_buffers[*src_processor],
+                &mut self.output_buffers[*src_processor],
             );
             // iterate over output ports
-            for output in 0..self.processors[*processor].outputs_amt() {
+            for src_port in 0..self.processors[*src_processor].outputs_amt() {
                 // match for connected inputs
-                if let Some(connected_ports) = self.connections.get(&(*processor, output)) {
+                if let Some(connected_ports) = self.connections.get(&(*src_processor, src_port)) {
                     // iterate over connected inputs
-                    for &(input_processor, input_port) in connected_ports {
+                    for &(dest_processor, dest_port) in connected_ports {
                         // iterate over samples
                         for sample in 0..self.buffersize {
-                            self.input_buffers[input_processor][input_port][sample] =
-                                self.input_buffers[input_processor][input_port][sample]
-                                    .zip_map(self.output_buffers[*processor][output][sample],
-                                             |x, y| {
-                                                 x.add_amp(y.to_sample())
-                                             });
+                            self.input_buffers[dest_processor][dest_port][sample] =
+                            self.input_buffers[dest_processor][dest_port][sample]
+                            .zip_map(
+                                self.output_buffers[*src_processor][src_port][sample],
+                                |x, y| {
+                                    x.add_amp(y.to_sample())
+                                }
+                            );
                         }
                     }
                 }
