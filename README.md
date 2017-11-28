@@ -7,8 +7,10 @@ A library for building big synthesizers and effects from small modules.
 Add pcm-flow to your Cargo.toml
 ```
 [dependencies]
-pcm-flow = "0.1.0"
+pcm-flow = "0.3.0"
 ```
+# A simple Program using pcm-flow
+Three Structs, implementing Processor are created, added to a Graph struct and connected
 
 ``` rust
 extern crate pcm_flow;
