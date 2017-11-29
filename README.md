@@ -1,6 +1,8 @@
 # pcm-flow
 
 A library for building big synthesizers and effects from small modules.
+You can write structs implementing the Processor Trait and chain them together in a flexible way.
+This library is still in early development and it is not advised to use it yet
 
 ## Usage
 
@@ -10,7 +12,9 @@ Add pcm-flow to your Cargo.toml
 pcm-flow = "0.3.1"
 ```
 # A simple Program using pcm-flow
-Three Structs, implementing Processor are created, added to a Graph struct and connected
+This program shows how to use pcm-flow in a very useless but simple way.
+We define a struct implementing the Processor trait which just takes an input and passes it to its output.
+Then we make two instances of this struct and chain them together.
 
 ``` rust
 extern crate pcm_flow;
@@ -19,65 +23,36 @@ use pcm_flow::graph::Graph;
 use pcm_flow::processor::Processor;
 
 fn main() {
-    let mut graph = Graph::new();
-    let mixer = graph.add_processor(Box::new(Mixer{}));
-    let distortion = graph.add_processor(Box::new(Distortion{}));
-    let delay = graph.add_processor(Box::new(Delay{
-                                                ringbuffer: vec![vec![0.0; 2]; 1000],
-                                                index: 0}));
-    graph.add_connection(&(distortion, 0), &(mixer, 0)).unwrap();
-    graph.add_connection(&(delay, 0),      &(mixer, 1)).unwrap();
+    // create a new graph Struct, it is the main container for our Processors
+    let mut graph = Graph::new(1);
+    // Add two PassThrough structs to the graph and store their IDs in variables
+    let pass_through1 = graph.add_processor(Box::new(PassThrough{}));
+    let pass_through2 = graph.add_processor(Box::new(PassThrough{}));
+    // connect the two processors
+    graph.add_connection(&(pass_through1, 0), &(pass_through2, 0)).unwrap();
+    // add an input to the graph
     graph.set_input_amt(1);
+    // add an output to the graph
     graph.set_output_amt(1);
-    graph.connect_input(0, (distortion, 0)).unwrap();
-    graph.connect_input(0, (delay, 0)).unwrap();
-    graph.connect_output(0, (mixer, 0)).unwrap();
-    let mut input = vec![[3.1 ,3.1]];
-    let mut output = vec![[0.0, 0.0]];
-    graph.process(&mut input, &mut output)
+    // connect the input to the first Processor
+    graph.connect_input(0, (pass_through1, 0)).unwrap();
+    // connect the second Processor to the Output
+    graph.connect_output(0, (pass_through2, 0)).unwrap();
+    graph.process
 }
 
-struct Mixer {}
+// The struct we define here, takes one input and passes the signal to the output
+struct PassThrough {}
 
-impl Processor<[f32; 2]> for Mixer {
-    fn process(&mut self, inputs: &mut Vec<[f32; 2]>, outputs: &mut Vec<[f32; 2]>) {
+impl Processor<[f32; 2]> for PassThrough {
+    fn process(&mut self, inputs: &Vec<Vec<[f32; 2]>>, outputs: &mut Vec<Vec<[f32; 2]>>) {
         for i in 0..2 {
-            outputs[0][i] = inputs[0][i] + inputs[1][i];
-        }
-    }
-    fn inputs_amt(&self) -> usize { 2 }
-    fn outputs_amt(&self) -> usize { 1 }
-}
-
-struct Distortion {}
-
-impl Processor<[f32; 2]> for Distortion {
-    fn process(&mut self, inputs: &mut Vec<[f32; 2]>, outputs: &mut Vec<[f32; 2]>) {
-        for i in 0..2 {
-            outputs[0][i] = inputs[0][i].max(0.5).min(-0.5);
-        }
-    }
-    fn inputs_amt(&self) -> usize { 2 }
-    fn outputs_amt(&self) -> usize { 1 }
-}
-
-struct Delay {
-    ringbuffer: Vec<Vec<f32>>,
-    index: usize,
-}
-
-impl Processor<[f32; 2]> for Delay {
-    fn process(&mut self, inputs: &mut Vec<[f32; 2]>, outputs: &mut Vec<[f32; 2]>) {
-        for i in 0..2 {
-            outputs[0][i] = self.ringbuffer[i][self.index];
-            self.ringbuffer[i][self.index] = inputs[0][i];
-            self.index += 1;
-            if self.index >= self.ringbuffer.len() {
-                self.index = 0;
+            for sample in 0..1 {
+                outputs[0][sample][i] = inputs[0][sample][i];
             }
         }
     }
-    fn inputs_amt(&self) -> usize { 2 }
+    fn inputs_amt(&self) -> usize { 1 }
     fn outputs_amt(&self) -> usize { 1 }
 }
 ```
