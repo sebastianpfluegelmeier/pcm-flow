@@ -1,6 +1,6 @@
 [package]
 name = "pcm-flow"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["sebastian pfluegelmeier"]
 license = "LGPL-3.0"
 repository = "https://github.com/sebastianpfluegelmeier/pcm-flow"
@@ -13,5 +13,5 @@ name = "pcm_flow"
 path = "./src/lib.rs"
 
 [dependencies]
-sample = "0.8.1"
+sample = "0.9.0"
 petgraph = "0.4.10"

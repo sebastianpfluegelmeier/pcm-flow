@@ -151,7 +151,7 @@ mod tests {
         graph.connect_output(0, (n4, 0)).unwrap();
         let mut output_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.0, 0.0]]];
         let input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[4.1, 6.2]]];
-        for i in 0..10 {
+        for _ in 0..10 {
             Processor::process(&mut graph, &input_buffer, &mut output_buffer);
         }
         assert_eq!(input_buffer[0][0][0], output_buffer[0][0][0]);
