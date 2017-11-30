@@ -38,7 +38,6 @@ fn main() {
     graph.connect_input(0, (pass_through1, 0)).unwrap();
     // connect the second Processor to the Output
     graph.connect_output(0, (pass_through2, 0)).unwrap();
-    graph.process
 }
 
 // The struct we define here, takes one input and passes the signal to the output
