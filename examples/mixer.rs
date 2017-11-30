@@ -6,18 +6,20 @@ use pcm_flow::processor::Processor;
 fn main() {
     // create a new graph Struct, it is the main container for our Processors
     let mut graph = Graph::new(1);
-    let mixer      = graph.add_processor(Box::new(Mixer{}));
-    let distortion = graph.add_processor(Box::new(Distortion{}));
-    let delay      = graph.add_processor(Box::new(Delay{ ringbuffer: vec![vec![0.0; 2]; 1000]
-                                                       , index: 0}));
+    let mixer = graph.add_processor(Box::new(Mixer {}));
+    let distortion = graph.add_processor(Box::new(Distortion {}));
+    let delay = graph.add_processor(Box::new(Delay {
+        ringbuffer: vec![vec![0.0; 2]; 1000],
+        index: 0,
+    }));
     graph.add_connection(&(distortion, 0), &(mixer, 0)).unwrap();
-    graph.add_connection(&(delay, 0),      &(mixer, 1)).unwrap();
+    graph.add_connection(&(delay, 0), &(mixer, 1)).unwrap();
     graph.set_input_amt(1);
     graph.set_output_amt(1);
     graph.connect_input(0, (distortion, 0)).unwrap();
     graph.connect_input(0, (delay, 0)).unwrap();
     graph.connect_output(0, (mixer, 0)).unwrap();
-    let input      = vec![vec![[3.1 ,3.1]]];
+    let input = vec![vec![[3.1, 3.1]]];
     let mut output = vec![vec![[0.0, 0.0]]];
     graph.process(&input, &mut output)
 }
@@ -33,8 +35,12 @@ impl Processor<[f32; 2]> for Mixer {
             }
         }
     }
-    fn inputs_amt(&self) -> usize { 2 }
-    fn outputs_amt(&self) -> usize { 1 }
+    fn inputs_amt(&self) -> usize {
+        2
+    }
+    fn outputs_amt(&self) -> usize {
+        1
+    }
 }
 
 // The Distortion struct defined here takes a input and clips the signal at 0.5 and -0.5
@@ -48,8 +54,12 @@ impl Processor<[f32; 2]> for Distortion {
             }
         }
     }
-    fn inputs_amt(&self) -> usize { 1 }
-    fn outputs_amt(&self) -> usize { 1 }
+    fn inputs_amt(&self) -> usize {
+        1
+    }
+    fn outputs_amt(&self) -> usize {
+        1
+    }
 }
 
 // The Delay struct takes a input and delays its output by a fixed amounth of samples
@@ -71,6 +81,10 @@ impl Processor<[f32; 2]> for Delay {
             }
         }
     }
-    fn inputs_amt(&self) -> usize { 1 }
-    fn outputs_amt(&self) -> usize { 1 }
+    fn inputs_amt(&self) -> usize {
+        1
+    }
+    fn outputs_amt(&self) -> usize {
+        1
+    }
 }

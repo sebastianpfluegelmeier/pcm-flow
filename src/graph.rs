@@ -3,9 +3,9 @@ extern crate sample;
 
 use processor::Processor;
 use self::sample::{Frame, Sample};
+use self::petgraph::graph::Graph as PetGraph;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use self::petgraph::graph::Graph as PetGraph;
 
 pub type PortId = (usize, usize);
 pub type Buffer<F> = Vec<F>;
@@ -58,7 +58,7 @@ where
             topological_sorting: Vec::new(),
             input_buffers: Vec::new(),
             output_buffers: Vec::new(),
-            buffersize: buffersize
+            buffersize: buffersize,
         }
     }
 
@@ -85,10 +85,8 @@ where
             Some(x) => {
                 x.insert(port);
                 Ok(())
-            }, 
-            None => {
-                Err(format!("input {} does not exist", input))
             }
+            None => Err(format!("input {} does not exist", input)),
         }
     }
 
@@ -101,10 +99,8 @@ where
             Some(x) => {
                 x.insert(port);
                 Ok(())
-            }, 
-            None => {
-                Err(format!("input {} does not exist", output))
             }
+            None => Err(format!("input {} does not exist", output)),
         }
     }
 
@@ -172,8 +168,7 @@ where
     fn process_graph(&mut self) {
         // clear input and output buffers
         for i in 0..self.processors.len() {
-            self.input_buffers[i] = 
-                empty_buffer(self.buffersize, self.processors[i].inputs_amt());
+            self.input_buffers[i] = empty_buffer(self.buffersize, self.processors[i].inputs_amt());
             self.output_buffers[i] =
                 empty_buffer(self.buffersize, self.processors[i].outputs_amt());
         }
@@ -206,13 +201,10 @@ where
                         // iterate over samples
                         for sample in 0..self.buffersize {
                             self.input_buffers[dest_processor][dest_port][sample] =
-                            self.input_buffers[dest_processor][dest_port][sample]
-                            .zip_map(
-                                self.output_buffers[*src_processor][src_port][sample],
-                                |x, y| {
-                                    x.add_amp(y.to_sample())
-                                }
-                            );
+                                self.input_buffers[dest_processor][dest_port][sample].zip_map(
+                                    self.output_buffers[*src_processor][src_port][sample],
+                                    |x, y| x.add_amp(y.to_sample()),
+                                );
                         }
                     }
                 }
@@ -223,12 +215,11 @@ where
         for (dest, src) in &self.output_connections {
             for &(src_proc, src_port) in src {
                 for sample in 0..self.buffersize {
-                        self.graph_output_buffers[*dest][sample] =
-                            self.graph_output_buffers[*dest][sample]
-                                .zip_map(self.output_buffers[src_proc][src_port][sample],
-                                         |x, y| {
-                                             x.add_amp(y.to_sample())
-                                         });
+                    self.graph_output_buffers[*dest][sample] =
+                        self.graph_output_buffers[*dest][sample].zip_map(
+                            self.output_buffers[src_proc][src_port][sample],
+                            |x, y| x.add_amp(y.to_sample()),
+                        );
                 }
             }
         }
@@ -291,7 +282,6 @@ where
             }
         }
         false
-
     }
 
     fn outport_exists(&self, port: PortId) -> bool {
@@ -335,6 +325,9 @@ where
     }
 }
 
-fn empty_buffer<F>(inner_size: usize, outer_size: usize) -> BufferSet<F> where F: Frame {
+fn empty_buffer<F>(inner_size: usize, outer_size: usize) -> BufferSet<F>
+where
+    F: Frame,
+{
     vec![vec![F::equilibrium(); inner_size]; outer_size]
 }

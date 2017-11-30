@@ -150,7 +150,7 @@ mod tests {
         graph.connect_input(0, (n1, 0)).unwrap();
         graph.connect_output(0, (n4, 0)).unwrap();
         let mut output_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.0, 0.0]]];
-        let      input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[4.1, 6.2]]];
+        let input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[4.1, 6.2]]];
         Processor::process(&mut graph, &input_buffer, &mut output_buffer);
         assert_eq!(input_buffer[0][0][0], output_buffer[0][0][0]);
         assert_eq!(input_buffer[0][0][1], output_buffer[0][0][1]);
@@ -170,10 +170,16 @@ mod tests {
         graph.connect_input(1, (n2, 0)).unwrap();
         graph.connect_output(0, (n3, 0)).unwrap();
         let mut output_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.4, 0.7]]];
-        let      input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.1, 0.2]],vec![[0.3, 0.5]]];
+        let input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.1, 0.2]], vec![[0.3, 0.5]]];
         Processor::process(&mut graph, &input_buffer, &mut output_buffer);
-        assert_eq!(input_buffer[0][0][0] + input_buffer[1][0][0], output_buffer[0][0][0]);
-        assert_eq!(input_buffer[0][0][1] + input_buffer[1][0][1], output_buffer[0][0][1]);
+        assert_eq!(
+            input_buffer[0][0][0] + input_buffer[1][0][0],
+            output_buffer[0][0][0]
+        );
+        assert_eq!(
+            input_buffer[0][0][1] + input_buffer[1][0][1],
+            output_buffer[0][0][1]
+        );
     }
 
     #[test]
@@ -192,7 +198,7 @@ mod tests {
         graph.connect_input(0, (n1, 0)).unwrap();
         graph.connect_output(0, (n4, 0)).unwrap();
         let mut output_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.4, 0.7]]];
-        let      input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.4, 0.7]]];
+        let input_buffer: Vec<Vec<[f32; 2]>> = vec![vec![[0.4, 0.7]]];
         Processor::process(&mut graph, &input_buffer, &mut output_buffer);
         assert_eq!(input_buffer[0][0][0] * 2.0, output_buffer[0][0][0]);
         assert_eq!(input_buffer[0][0][1] * 2.0, output_buffer[0][0][1]);
