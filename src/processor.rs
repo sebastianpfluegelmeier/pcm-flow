@@ -6,7 +6,7 @@ use super::graph::FrameSet;
 /// The trait every signal processor has to implement.
 /// The inputs_amt function should return the number of inputs
 /// and the output_amt function should return the number of outputs of the processor 
-///
+    ///
 /// Either the process or the frame_process method has to be overriden.
 /// If none of them are overriden the signal processor does nothing.
 pub trait Processor<F: sample::Frame> {
@@ -18,6 +18,9 @@ pub trait Processor<F: sample::Frame> {
             self.frame_process(&inputs[i], &mut outputs[i]);
         }
     }
+
+    /// Override this function if you want your processor to store the Samplerate
+    fn set_samplerate(&mut self, usize) {}
 
     /// Override this function if you want to work on FrameSets
     /// Read input from the input FrameSet

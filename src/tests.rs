@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn cyclic_graph_test_1() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -42,7 +42,7 @@ mod tests {
 
     #[test]
     fn cyclic_graph_test_2() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn cyclic_graph_test_3() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn cyclic_graph_test_4() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn topologic_sorting_test_1() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn topologic_sorting_test_2() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn pass_through_test_1() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn pass_through_test_2() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -186,7 +186,7 @@ mod tests {
 
     #[test]
     fn pass_through_test_3() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         let n3 = graph.add_processor(Box::new(TestProcessor {}));
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn too_much_connections_test() {
-        let mut graph = Graph::<[f32; 2]>::new(1);
+        let mut graph = Graph::<[f32; 2]>::new(1, 41_000);
         let n1 = graph.add_processor(Box::new(TestProcessor {}));
         let n2 = graph.add_processor(Box::new(TestProcessor {}));
         match graph.add_connection(&mut (n1, 1), &mut (n2, 0)) {

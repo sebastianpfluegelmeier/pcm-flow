@@ -5,7 +5,7 @@ use pcm_flow::processor::Processor;
 
 fn main() {
     // create a new graph Struct, it is the main container for our Processors
-    let mut graph = Graph::new(1);
+    let mut graph = Graph::new(1, 41_000);
     let mixer = graph.add_processor(Box::new(Mixer {}));
     let distortion = graph.add_processor(Box::new(Distortion {}));
     let delay = graph.add_processor(Box::new(Delay {

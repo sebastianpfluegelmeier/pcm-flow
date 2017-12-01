@@ -9,7 +9,7 @@ This library is still in early development and it is not advised to use it yet
 Add pcm-flow to your Cargo.toml
 ```
 [dependencies]
-pcm-flow = "0.3.1"
+pcm-flow = "0.5.0"
 ```
 # A simple Program using pcm-flow
 This program shows how to use pcm-flow in a very useless but simple way.

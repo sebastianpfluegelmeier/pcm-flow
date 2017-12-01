@@ -20,6 +20,7 @@ pub type BufferSet<F> = Vec<FrameSet<F>>;
 /// which can be connected to processors.
 /// These inputs and outputs are called graph inputs and graph outputs.
 pub struct Graph<F> {
+    samplerate: usize,
     // contains all processors
     processors: Vec<Box<Processor<F>>>,
     // buffers that contains the graph inputs
@@ -47,8 +48,9 @@ where
     F: Frame,
 {
     /// Create a new empty Graph
-    pub fn new(buffersize: usize) -> Self {
+    pub fn new(buffersize: usize, samplerate: usize) -> Self {
         Graph {
+            samplerate: samplerate,
             processors: Vec::new(),
             graph_input_buffers: vec![],
             graph_output_buffers: vec![],
@@ -73,6 +75,7 @@ where
             self.connections.insert((index, i), HashSet::new());
         }
         self.processors.push(processor);
+        self.processors[index].set_samplerate(self.samplerate);
         return index;
     }
 
@@ -324,6 +327,10 @@ where
     /// returns the amount of outputs
     fn outputs_amt(&self) -> usize {
         self.output_buffers.len()
+    }
+
+    fn set_samplerate(&mut self, samplerate: usize) {
+        self.samplerate = samplerate;
     }
 }
 
